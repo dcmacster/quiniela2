@@ -13,8 +13,8 @@ class Partido(models.Model):
     goles_visitante_real = models.IntegerField(null=True, blank=True)
     finalizado = models.BooleanField(default=False)
     es_partido_especial = models.BooleanField(default=False)
-    codigo_bandera_local = models.CharField(max_length=5, blank=True, null=True, verbose_name="Código Bandera Local")
-    codigo_bandera_visitante = models.CharField(max_length=5, blank=True, null=True, verbose_name="Código Bandera Visitante")
+    codigo_bandera_local = models.CharField(max_length=10, blank=True, null=True, verbose_name="Código Bandera Local")
+    codigo_bandera_visitante = models.CharField(max_length=10, blank=True, null=True, verbose_name="Código Bandera Visitante")
 
     class Meta:
         verbose_name = "Partido"

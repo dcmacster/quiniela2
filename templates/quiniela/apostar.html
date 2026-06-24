@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Pronosticar - Quiniela Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+        
+        <!-- Navigation Back Link -->
+        <div class="mb-4">
+            <a href="{% url 'dashboard' %}" class="text-info text-decoration-none d-inline-flex align-items-center gap-2">
+                <i class="bi bi-arrow-left-circle-fill fs-5"></i> Volver a Cartelera
+            </a>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- Predict Score Form (Dual Inputs) -->
+            <div class="col-md-7">
+                <div class="glass-card p-4 p-md-5 h-100">
+                    <h3 class="mb-2 text-light" style="font-family: 'Outfit', sans-serif;">🎯 Registrar Pronóstico</h3>
+                    <p class="text-secondary small mb-4">Ingresa tu predicción para este partido.</p>
+
+                    <!-- Match Heading Card -->
+                    <div class="text-center bg-dark bg-opacity-50 p-3 rounded border border-secondary border-opacity-10 mb-4">
+                        <span class="text-secondary small d-block mb-1">
+                            <i class="bi bi-calendar-event text-info me-1"></i> {{ partido.fecha_partido|date:"d M, Y - H:i" }}
+                        </span>
+                        <div class="d-flex justify-content-center align-items-center gap-2">
+                            {% if partido.codigo_bandera_local %}
+                                <span class="fi fi-{{ partido.codigo_bandera_local }} me-1"></span>
+                            {% endif %}
+                            <span class="fw-semibold text-light text-truncate" style="max-width: 140px;">{{ partido.equipo_local }}</span>
+                            <span class="badge bg-secondary px-2">VS</span>
+                            <span class="fw-semibold text-light text-truncate" style="max-width: 140px;">{{ partido.equipo_visitante }}</span>
+                            {% if partido.codigo_bandera_visitante %}
+                                <span class="fi fi-{{ partido.codigo_bandera_visitante }} ms-1"></span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <form method="POST" id="pronosticoForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="row align-items-center g-3 my-3">
+                            <!-- Local Score input -->
+                            <div class="col-5">
+                                <label for="goles_local_pronostico" class="form-label text-secondary text-truncate d-block text-center mb-2">
+                                    {% if partido.codigo_bandera_local %}
+                                        <span class="fi fi-{{ partido.codigo_bandera_local }} me-1 align-middle"></span>
+                                    {% endif %}
+                                    <span class="align-middle">{{ partido.equipo_local }}</span>
+                                </label>
+                                <input type="number" 
+                                       class="form-control text-center fs-3 fw-bold py-3" 
+                                       id="goles_local_pronostico" 
+                                       name="goles_local_pronostico" 
+                                       min="0" 
+                                       required
+                                       value="{% if pronostico %}{{ pronostico.goles_local_pronostico }}{% endif %}">
+                            </div>
+
+                            <!-- Dash separator -->
+                            <div class="col-2 text-center text-secondary fs-2 mt-4">-</div>
+
+                            <!-- Visitor Score input -->
+                            <div class="col-5">
+                                <label for="goles_visitante_pronostico" class="form-label text-secondary text-truncate d-block text-center mb-2">
+                                    {% if partido.codigo_bandera_visitante %}
+                                        <span class="fi fi-{{ partido.codigo_bandera_visitante }} me-1 align-middle"></span>
+                                    {% endif %}
+                                    <span class="align-middle">{{ partido.equipo_visitante }}</span>
+                                </label>
+                                <input type="number" 
+                                       class="form-control text-center fs-3 fw-bold py-3" 
+                                       id="goles_visitante_pronostico" 
+                                       name="goles_visitante_pronostico" 
+                                       min="0" 
+                                       required
+                                       value="{% if pronostico %}{{ pronostico.goles_visitante_pronostico }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <!-- Live JS Conflict Warning Container -->
+                        <div id="conflictWarning" class="alert alert-warning d-none glass-card py-2 px-3 mt-3 mb-4" style="border-left: 4px solid #ffc107; background: rgba(22, 28, 45, 0.9);">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                                <span class="text-light small">Este marcador ya está ocupado por otro usuario. Si lo envías, se rechazará.</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary w-100 py-3 fs-5" id="submitBtn">
+                                <i class="bi bi-check-circle-fill"></i> Guardar Pronóstico
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Blocked Scores Checklist / Card -->
+            <div class="col-md-5">
+                <div class="glass-card p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="mb-2 text-warning d-flex align-items-center gap-2" style="font-family: 'Outfit', sans-serif;">
+                            <i class="bi bi-shield-lock-fill"></i> Marcadores Ocupados
+                        </h4>
+                        <p class="text-secondary small mb-3">
+                            Por reglas del torneo, no puedes pronosticar un marcador que ya haya sido ingresado por otro usuario para este mismo partido.
+                        </p>
+
+                        <div class="border-top border-secondary-subtle pt-3">
+                            {% if marcadores_ocupados %}
+                                <div class="d-flex flex-wrap gap-2" id="blockedScoresList">
+                                    {% for marcador in marcadores_ocupados %}
+                                        <span class="badge bg-dark border border-danger border-opacity-50 text-danger px-3 py-2 rounded-3 fs-6 d-inline-flex align-items-center gap-1 cursor-not-allowed" data-score="{{ marcador }}">
+                                            <i class="bi bi-lock-fill text-danger"></i> {{ marcador }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4 bg-dark bg-opacity-25 rounded border border-dashed border-secondary border-opacity-10">
+                                    <i class="bi bi-unlock-fill text-success fs-3 mb-2 d-block"></i>
+                                    <span class="text-secondary small d-block">¡No hay marcadores ocupados aún!</span>
+                                    <span class="text-success small fw-semibold">¡Puedes elegir cualquier resultado!</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-dark bg-opacity-50 p-3 rounded border border-secondary border-opacity-10">
+                        <h6 class="text-info mb-1"><i class="bi bi-lightbulb-fill text-warning"></i> Consejo de Juego</h6>
+                        <span class="text-secondary small d-block">
+                            Si el marcador que buscas ya está bloqueado, intenta predecir un marcador alternativo. ¡Sé estratégico!
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const localInput = document.getElementById('goles_local_pronostico');
+        const visitanteInput = document.getElementById('goles_visitante_pronostico');
+        const conflictWarning = document.getElementById('conflictWarning');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Extract list of blocked scores from badges data attributes
+        const blockedBadges = document.querySelectorAll('#blockedScoresList [data-score]');
+        const blockedScores = Array.from(blockedBadges).map(badge => badge.getAttribute('data-score').trim());
+
+        function checkScoreConflict() {
+            const localVal = localInput.value.trim();
+            const visitanteVal = visitanteInput.value.trim();
+
+            if (localVal !== '' && visitanteVal !== '') {
+                const currentScore = `${localVal} - ${visitanteVal}`;
+                if (blockedScores.includes(currentScore)) {
+                    conflictWarning.classList.remove('d-none');
+                    submitBtn.classList.remove('btn-primary');
+                    submitBtn.classList.add('btn-danger');
+                } else {
+                    conflictWarning.classList.add('d-none');
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.classList.add('btn-primary');
+                }
+            } else {
+                conflictWarning.classList.add('d-none');
+                submitBtn.classList.remove('btn-danger');
+                submitBtn.classList.add('btn-primary');
+            }
+        }
+
+        localInput.addEventListener('input', checkScoreConflict);
+        visitanteInput.addEventListener('input', checkScoreConflict);
+        
+        // Initial run in case input has default values
+        checkScoreConflict();
+    });
+</script>
+{% endblock %}

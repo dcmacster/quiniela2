@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Tabla de Posiciones - Quiniela Pro{% endblock %}
+
+{% block content %}
+<div class="row align-items-center mb-5">
+    <div class="col-md-7">
+        <h1 class="display-5 mb-1" style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            📈 Tabla de Posiciones
+        </h1>
+        <p class="text-secondary">Sigue de cerca a los líderes y revisa los puntajes diarios del torneo.</p>
+    </div>
+    
+    <!-- Filter Toggle Pills -->
+    <div class="col-md-5 text-md-end mt-3 mt-md-0">
+        <div class="d-inline-flex gap-2 bg-dark bg-opacity-50 p-2 rounded-3 border border-secondary border-opacity-10">
+            <a href="{% url 'tabla_posiciones' %}?tipo=general" 
+               class="btn btn-sm {% if tipo == 'general' %}btn-primary{% else %}btn-outline-secondary text-secondary border-0{% endif %} px-3 py-2">
+                <i class="bi bi-globe2 me-1"></i> General
+            </a>
+            <a href="{% url 'tabla_posiciones' %}?tipo=diaria" 
+               class="btn btn-sm {% if tipo == 'diaria' %}btn-primary{% else %}btn-outline-secondary text-secondary border-0{% endif %} px-3 py-2">
+                <i class="bi bi-calendar-check-fill me-1"></i> Diaria
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Date Filter (Only shows if type is diaria) -->
+{% if tipo == 'diaria' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="glass-card p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-funnel-fill text-info fs-5"></i>
+                <h5 class="mb-0 text-light" style="font-family: 'Outfit', sans-serif;">Filtrar por fecha</h5>
+            </div>
+            
+            <form method="GET" action="{% url 'tabla_posiciones' %}" class="d-flex align-items-center gap-2" id="dateFilterForm">
+                <input type="hidden" name="tipo" value="diaria">
+                
+                <select name="fecha" class="form-select form-control bg-dark text-light border-secondary" style="min-width: 200px;" onchange="document.getElementById('dateFilterForm').submit();">
+                    {% if fechas_disponibles %}
+                        {% for f in fechas_disponibles %}
+                            <option value="{{ f|date:'Y-m-d' }}" {% if f|date:'Y-m-d' == fecha_seleccionada_str %}selected{% endif %}>
+                                {{ f|date:"d \d\e F, Y" }}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">Sin fechas de partidos</option>
+                    {% endif %}
+                </select>
+                
+                <noscript>
+                    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                </noscript>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Leaderboard Card -->
+<div class="row">
+    <div class="col-12">
+        <div class="glass-card p-4 p-md-5">
+            {% if tipo == 'general' %}
+                <h3 class="mb-4 text-light" style="font-family: 'Outfit', sans-serif;">🏆 Tabla Acumulada</h3>
+            {% else %}
+                <h3 class="mb-4 text-light" style="font-family: 'Outfit', sans-serif;">
+                    📅 Resultados del Día: <span class="text-info">{{ fecha_seleccionada|date:"d \d\e F, Y" }}</span>
+                </h3>
+            {% endif %}
+
+            {% if posiciones %}
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">Pos</th>
+                                <th>Usuario</th>
+                                {% if tipo == 'general' %}
+                                    <th class="text-center">Marcadores Especiales 🎯</th>
+                                    <th class="text-center">Premio Especial 🌟</th>
+                                    <th class="text-end">Puntos Totales 👑</th>
+                                {% else %}
+                                    <th class="text-center">Pago Confirmado 💸</th>
+                                    <th class="text-end">Puntos Diarios 🎯</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pos in posiciones %}
+                                <tr class="table-row-glass {% if forloop.counter == 1 %}border-start border-warning border-3{% endif %}">
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            {% if forloop.counter == 1 %}
+                                                <span class="fs-4">🥇</span>
+                                            {% elif forloop.counter == 2 %}
+                                                <span class="fs-4">🥈</span>
+                                            {% elif forloop.counter == 3 %}
+                                                <span class="fs-4">🥉</span>
+                                            {% else %}
+                                                <span class="fw-semibold text-secondary fs-5">{{ forloop.counter }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center text-light fw-bold" style="width: 32px; height: 32px; font-size: 0.85rem;">
+                                                {{ pos.usuario.username|slice:":2"|upper }}
+                                            </div>
+                                            <div>
+                                                <span class="fw-semibold text-light">{{ pos.usuario.username }}</span>
+                                                {% if pos.usuario == request.user %}
+                                                    <span class="badge bg-info text-dark ms-1" style="font-size: 0.65rem;">Tú</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {% if tipo == 'general' %}
+                                        <!-- General Stats Columns -->
+                                        <td class="text-center">
+                                            <span class="badge bg-dark border border-secondary text-light px-2.5 py-1.5 rounded">
+                                                {{ pos.marcadores_especiales_atinados }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if pos.tiene_premio_especial %}
+                                                <span class="badge badge-special px-3 py-2 rounded-pill pulse-accent">
+                                                    🏆 Premio Especial
+                                                </span>
+                                            {% else %}
+                                                <span class="text-secondary small">—</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="fs-4 fw-extrabold text-info">{{ pos.puntos_totales }}</span>
+                                        </td>
+                                    {% else %}
+                                        <!-- Daily Stats Columns -->
+                                        <td class="text-center">
+                                            {% if pos.pago_confirmado %}
+                                                <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
+                                                    💸 Confirmado
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill">
+                                                    ❌ Pendiente
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="fs-4 fw-extrabold text-success">{{ pos.puntos }}</span>
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-clipboard2-data text-secondary fs-1 d-block mb-3"></i>
+                    <h4 class="text-light">No hay registros de posiciones</h4>
+                    <p class="text-secondary mb-0">Los puntajes y posiciones se calcularán cuando los partidos finalicen.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

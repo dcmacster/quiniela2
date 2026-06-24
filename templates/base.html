@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quiniela Pro - Sports Pool{% endblock %}</title>
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Flag Icons CDN -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css"/>
+    
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.7);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --accent-color: #00f2fe; /* Neon Cyan */
+            --accent-green: #39ff14; /* Neon Green */
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary-gradient: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            --secondary-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        /* Flag icons styling overrides */
+        .fi {
+            border-radius: 3px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            width: 1.8em;
+            height: 1.35em;
+            display: inline-block;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(57, 255, 20, 0.05) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+        }
+
+        /* Glassmorphism styling */
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(0, 242, 254, 0.25);
+            box-shadow: 0 12px 40px 0 rgba(0, 242, 254, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Custom Navbar */
+        .navbar {
+            background: rgba(11, 15, 25, 0.8) !important;
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            letter-spacing: 0.5px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-link.active {
+            border-bottom: 2px solid var(--accent-color);
+            border-radius: 8px 8px 0 0;
+        }
+
+        /* Buttons styling */
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            color: #0b0f19;
+            font-weight: 600;
+            padding: 0.6rem 1.5rem;
+            border-radius: 10px;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+            color: #0b0f19;
+        }
+
+        .btn-outline-accent {
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            background: transparent;
+            font-weight: 600;
+            padding: 0.6rem 1.5rem;
+            border-radius: 10px;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-outline-accent:hover {
+            background: var(--primary-gradient);
+            color: #0b0f19;
+            border-color: transparent;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+            border: none;
+        }
+
+        .footer {
+            margin-top: auto;
+            border-top: 1px solid var(--card-border);
+            padding: 1.5rem 0;
+            background: rgba(11, 15, 25, 0.9);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Custom Badges */
+        .badge-special {
+            background: var(--secondary-gradient);
+            color: #0b0f19;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-real {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Micro-animations */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(0, 242, 254, 0.6); }
+            100% { box-shadow: 0 0 5px rgba(0, 242, 254, 0.2); }
+        }
+
+        .pulse-accent {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+
+        /* Form elements styling */
+        .form-control {
+            background-color: rgba(11, 15, 25, 0.8) !important;
+            border: 1px solid var(--card-border);
+            color: var(--text-primary) !important;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25);
+        }
+
+        /* Table custom designs */
+        .table {
+            color: var(--text-primary) !important;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+            background: transparent !important;
+        }
+
+        .table th {
+            color: var(--text-secondary) !important;
+            font-weight: 600;
+            border: none;
+            padding: 12px 16px;
+            background: transparent !important;
+        }
+
+        .table tr.table-row-glass {
+            background: rgba(255, 255, 255, 0.03) !important;
+            transition: all 0.2s;
+        }
+
+        .table tr.table-row-glass:hover {
+            background: rgba(255, 255, 255, 0.07) !important;
+            transform: scale(1.005);
+        }
+
+        .table td {
+            padding: 16px;
+            border: none;
+            vertical-align: middle;
+            background: transparent !important;
+        }
+
+        .table td:first-child {
+            border-radius: 12px 0 0 12px;
+        }
+
+        .table td:last-child {
+            border-radius: 0 12px 12px 0;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Navigation Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="bi bi-trophy-fill"></i> QUINIELA PRO
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+                            <i class="bi bi-calendar-event me-1"></i> Partidos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'tabla_posiciones' %}active{% endif %}" href="{% url 'tabla_posiciones' %}">
+                            <i class="bi bi-list-ol me-1"></i> Tabla de Posiciones
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center gap-3">
+                    {% if user.is_authenticated %}
+                        <span class="text-secondary d-none d-md-inline">
+                            <i class="bi bi-person-circle me-1"></i> Hola, <strong>{{ user.username }}</strong>
+                            {% if user.perfilquiniela %}
+                                <span class="badge bg-secondary ms-1">{{ user.perfilquiniela.puntos_totales }} pts</span>
+                            {% endif %}
+                        </span>
+                        <a href="{% url 'account_logout' %}" class="btn btn-outline-danger btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> Salir
+                        </a>
+                    {% else %}
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-accent btn-sm">
+                            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                        </a>
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-sm">
+                            Registrarse
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container my-5 flex-grow-1">
+        <!-- Django Messages -->
+        {% if messages %}
+            <div class="row mb-4">
+                <div class="col-12">
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show glass-card" role="alert" style="background: rgba(22, 28, 45, 0.85); border-left: 4px solid {% if message.tags == 'error' %}#ff416c{% else %}#00f2fe{% endif %};">
+                            <div class="d-flex align-items-center gap-2">
+                                {% if message.tags == 'error' %}
+                                    <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+                                {% else %}
+                                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                {% endif %}
+                                <span class="text-light">{{ message }}</span>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2026 Quiniela Pro. Diseñado con ❤️ para fanáticos del deporte.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

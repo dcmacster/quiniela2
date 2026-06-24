@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load socialaccount %}
+
+{% block title %}Completar Registro - Quiniela Pro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="glass-card p-4 p-md-5">
+            <!-- Header/Logo -->
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-person-plus-fill fs-2"></i>
+                </div>
+                <h3 class="mb-1 text-light" style="font-family: 'Outfit', sans-serif; font-weight: 700;">Registrarse</h3>
+                <p class="text-secondary small">Estás a punto de crear una cuenta en Quiniela Pro usando tu cuenta de Google ({{ account.user.email }}).</p>
+            </div>
+
+            <!-- Standard Signup Form -->
+            <form class="signup-form" method="POST" action="{% url 'socialaccount_signup' %}">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger py-2 px-3 mb-3 small glass-card" style="border-left: 4px solid #ff416c;">
+                        {% for error in form.non_field_errors %}
+                            <p class="mb-0 text-light">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label text-secondary small">{{ field.label }}</label>
+                        {{ field }}
+                        
+                        <!-- Help text -->
+                        {% if field.help_text %}
+                            <div class="text-secondary small mt-1" style="font-size: 0.75rem; opacity: 0.75;">
+                                {{ field.help_text|safe }}
+                            </div>
+                        {% endif %}
+
+                        {% if field.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ field.errors|join:", " }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                {% if redirect_field_value %}
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary w-100 py-2.5 fs-6 mb-3 mt-3">
+                    <i class="bi bi-person-check-fill"></i> Completar Registro
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling auto-generated Django form elements directly */
+    .signup-form input[type="text"], 
+    .signup-form input[type="password"],
+    .signup-form input[type="email"],
+    .signup-form input[type="number"] {
+        display: block;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: var(--text-primary) !important;
+        background-color: rgba(11, 15, 25, 0.8) !important;
+        background-clip: padding-box;
+        border: 1px solid var(--card-border) !important;
+        border-radius: 10px;
+        transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+    .signup-form input[type="text"]:focus, 
+    .signup-form input[type="password"]:focus,
+    .signup-form input[type="email"]:focus,
+    .signup-form input[type="number"]:focus {
+        border-color: var(--accent-color) !important;
+        box-shadow: 0 0 10px rgba(0, 242, 254, 0.25) !important;
+        outline: 0;
+    }
+    .signup-form ul {
+        padding-left: 1rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0;
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}

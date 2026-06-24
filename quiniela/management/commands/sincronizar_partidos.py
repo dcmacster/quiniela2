@@ -66,13 +66,18 @@ class Command(BaseCommand):
         
         # Si la API no tiene partidos de fútbol hoy o falla, creamos partidos del mundial
         # interesantes simulados para hoy para permitir pruebas de juego
-        if partidos_creados == 0 and not Partido.objects.filter(fecha_partido__date=timezone.now().date()).exists():
+        if partidos_creados == 0:
             self.stdout.write("No se encontraron partidos en la API para hoy. Generando cartelera del día del Mundial...")
             
             partidos_hoy = [
                 {"local": "España", "visitante": "Portugal", "especial": True, "codigo_l": "es", "codigo_v": "pt", "horas_offset": 2},
                 {"local": "Inglaterra", "visitante": "Italia", "especial": False, "codigo_l": "gb-eng", "codigo_v": "it", "horas_offset": 4},
                 {"local": "Uruguay", "visitante": "Colombia", "especial": False, "codigo_l": "uy", "codigo_v": "co", "horas_offset": 6},
+                {"local": "Alemania", "visitante": "Japón", "especial": False, "codigo_l": "de", "codigo_v": "jp", "horas_offset": 8},
+                {"local": "Brasil", "visitante": "Croacia", "especial": True, "codigo_l": "br", "codigo_v": "hr", "horas_offset": 10},
+                {"local": "Argentina", "visitante": "Países Bajos", "especial": False, "codigo_l": "ar", "codigo_v": "nl", "horas_offset": 12},
+                {"local": "México", "visitante": "Estados Unidos", "especial": True, "codigo_l": "mx", "codigo_v": "us", "horas_offset": 14},
+                {"local": "Francia", "visitante": "Marruecos", "especial": False, "codigo_l": "fr", "codigo_v": "ma", "horas_offset": 16},
             ]
             
             for p in partidos_hoy:

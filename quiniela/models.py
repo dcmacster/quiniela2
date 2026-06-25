@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 class Partido(models.Model):
     equipo_local = models.CharField(max_length=100)
@@ -76,7 +77,7 @@ class Partido(models.Model):
         Sums historical scores to PerfilQuiniela and calculates specific daily score sums
         to PuntosDiarios filtered by fecha_partido__date.
         """
-        fecha_partido_date = self.fecha_partido.date()
+        fecha_partido_date = timezone.localdate(self.fecha_partido)
         usuarios = User.objects.all()
 
         for usuario in usuarios:
@@ -109,11 +110,21 @@ class Partido(models.Model):
                 partido__fecha_partido__date=fecha_partido_date
             ).aggregate(total=Sum('puntos_ganados'))['total'] or 0
 
+            # Count of special matches with exact score for this day
+            marcadores_especiales_dia = Pronostico.objects.filter(
+                usuario=usuario,
+                partido__finalizado=True,
+                partido__fecha_partido__date=fecha_partido_date,
+                partido__es_partido_especial=True,
+                puntos_ganados=4
+            ).count()
+
             puntos_diarios_obj, _ = PuntosDiarios.objects.get_or_create(
                 usuario=usuario,
                 fecha=fecha_partido_date
             )
             puntos_diarios_obj.puntos = puntos_dia
+            puntos_diarios_obj.marcadores_especiales = marcadores_especiales_dia
             puntos_diarios_obj.save()
 
     def save(self, *args, **kwargs):
@@ -188,6 +199,7 @@ class PuntosDiarios(models.Model):
     fecha = models.DateField()
     puntos = models.IntegerField(default=0)
     pago_confirmado = models.BooleanField(default=False)
+    marcadores_especiales = models.IntegerField(default=0)
 
     class Meta:
         unique_together = ('usuario', 'fecha')

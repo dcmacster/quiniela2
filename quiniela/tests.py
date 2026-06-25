@@ -98,9 +98,9 @@ class QuinielaTestCase(TestCase):
         self.assertEqual(perfil_c.puntos_totales, 0)
 
         # Verify PuntosDiarios
-        puntos_diarios_a = PuntosDiarios.objects.get(usuario=self.user_a, fecha=self.fecha_partido.date())
-        puntos_diarios_b = PuntosDiarios.objects.get(usuario=self.user_b, fecha=self.fecha_partido.date())
-        puntos_diarios_c = PuntosDiarios.objects.get(usuario=self.user_c, fecha=self.fecha_partido.date())
+        puntos_diarios_a = PuntosDiarios.objects.get(usuario=self.user_a, fecha=timezone.localdate(self.fecha_partido))
+        puntos_diarios_b = PuntosDiarios.objects.get(usuario=self.user_b, fecha=timezone.localdate(self.fecha_partido))
+        puntos_diarios_c = PuntosDiarios.objects.get(usuario=self.user_c, fecha=timezone.localdate(self.fecha_partido))
 
         self.assertEqual(puntos_diarios_a.puntos, 4)
         self.assertEqual(puntos_diarios_b.puntos, 1)
@@ -152,6 +152,10 @@ class QuinielaTestCase(TestCase):
         perfil_a = PerfilQuiniela.objects.get(usuario=self.user_a)
         self.assertEqual(perfil_a.marcadores_especiales_atinados, 1)
         self.assertFalse(perfil_a.tiene_premio_especial())
+        
+        # Verify daily special matches score count in PuntosDiarios
+        puntos_diarios_a = PuntosDiarios.objects.get(usuario=self.user_a, fecha=timezone.localdate(self.fecha_partido))
+        self.assertEqual(puntos_diarios_a.marcadores_especiales, 1)
 
         # Finalize match 2 with exact score
         partido_esp_2.goles_local_real = 2
@@ -163,3 +167,7 @@ class QuinielaTestCase(TestCase):
         perfil_a.refresh_from_db()
         self.assertEqual(perfil_a.marcadores_especiales_atinados, 2)
         self.assertTrue(perfil_a.tiene_premio_especial())
+
+        # Verify daily special matches score count updated in PuntosDiarios
+        puntos_diarios_a.refresh_from_db()
+        self.assertEqual(puntos_diarios_a.marcadores_especiales, 2)

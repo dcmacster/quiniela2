@@ -95,6 +95,8 @@ def tabla_posiciones(request):
     
     posiciones = []
     fecha_seleccionada = None
+    partidos_con_pronosticos = []
+    now = timezone.now()
 
     if tipo == 'diaria':
         if fecha_str:
@@ -112,6 +114,28 @@ def tabla_posiciones(request):
         
         # Query PuntosDiarios for that date, ordered by points descending
         posiciones = PuntosDiarios.objects.filter(fecha=fecha_seleccionada).order_by('-puntos', 'usuario__username')
+
+        # Fetch matches and build match prediction mapping
+        partidos_del_dia = Partido.objects.filter(fecha_partido__date=fecha_seleccionada).order_by('fecha_partido')
+        usuarios_con_puntos = [p.usuario for p in posiciones]
+        usuarios_con_puntos_ids = [u.id for u in usuarios_con_puntos]
+        from django.contrib.auth.models import User
+        otros_usuarios = User.objects.exclude(id__in=usuarios_con_puntos_ids).order_by('username')
+        usuarios_ordenados = list(usuarios_con_puntos) + list(otros_usuarios)
+
+        for partido in partidos_del_dia:
+            # map of user_id -> pronostico object
+            pronosticos_map = {p.usuario_id: p for p in partido.pronosticos.all()}
+            pronosticos_lista = []
+            for u in usuarios_ordenados:
+                pronosticos_lista.append({
+                    'usuario': u,
+                    'pronostico': pronosticos_map.get(u.id)
+                })
+            partidos_con_pronosticos.append({
+                'partido': partido,
+                'pronosticos': pronosticos_lista
+            })
     else:
         # Query PerfilQuiniela ordered by points descending
         posiciones = PerfilQuiniela.objects.all().order_by('-puntos_totales', '-marcadores_especiales_atinados', 'usuario__username')
@@ -122,5 +146,7 @@ def tabla_posiciones(request):
         'fechas_disponibles': fechas_disponibles,
         'fecha_seleccionada': fecha_seleccionada,
         'fecha_seleccionada_str': fecha_seleccionada.strftime('%Y-%m-%d') if fecha_seleccionada else '',
+        'partidos_con_pronosticos': partidos_con_pronosticos,
+        'now': now,
     }
     return render(request, 'quiniela/posiciones.html', context)

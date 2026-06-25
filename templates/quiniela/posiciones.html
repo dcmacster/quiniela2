@@ -85,7 +85,8 @@
                                     <th class="text-end">Puntos Totales 👑</th>
                                 {% else %}
                                     <th class="text-center">Pago Confirmado 💸</th>
-                                    <th class="text-end">Puntos Diarios 🎯</th>
+                                    <th class="text-center">Especiales Ganados 🎯</th>
+                                    <th class="text-end">Puntos Diarios 🏆</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -152,6 +153,11 @@
                                                 </span>
                                             {% endif %}
                                         </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-dark border border-secondary text-light px-2.5 py-1.5 rounded">
+                                                {{ pos.marcadores_especiales }}
+                                            </span>
+                                        </td>
                                         <td class="text-end">
                                             <span class="fs-4 fw-extrabold text-success">{{ pos.puntos }}</span>
                                         </td>
@@ -171,4 +177,150 @@
         </div>
     </div>
 </div>
+
+{% if tipo == 'diaria' %}
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="glass-card p-4 p-md-5">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary">
+                    <i class="bi bi-eye-fill fs-3"></i>
+                </div>
+                <div>
+                    <h3 class="mb-1 text-light" style="font-family: 'Outfit', sans-serif;">🕵️‍♂️ Pronósticos de la Jornada</h3>
+                    <p class="text-secondary mb-0">Revisa qué marcador pronosticó cada participante para el día de hoy.</p>
+                </div>
+            </div>
+
+            {% if partidos_con_pronosticos %}
+                <div class="row g-4">
+                    {% for item in partidos_con_pronosticos %}
+                        {% with partido=item.partido pronosticos=item.pronosticos %}
+                        <div class="col-12 col-xl-6">
+                            <div class="p-4 rounded-4 border border-secondary border-opacity-10 h-100" style="background: rgba(255, 255, 255, 0.02);">
+                                
+                                <!-- Match Title Header -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="text-secondary small">
+                                        <i class="bi bi-clock me-1 text-info"></i> {{ partido.fecha_partido|date:"H:i" }} hrs
+                                    </span>
+                                    {% if partido.es_partido_especial %}
+                                        <span class="badge bg-success text-dark fw-bold text-uppercase" style="font-size: 0.65rem; font-family: 'Outfit', sans-serif;">
+                                            ⭐ Especial
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row align-items-center text-center my-3 py-2 bg-dark bg-opacity-40 rounded-3 border border-secondary border-opacity-10">
+                                    <div class="col-4">
+                                        {% if partido.codigo_bandera_local %}
+                                            <span class="fi fi-{{ partido.codigo_bandera_local }} fs-4 d-block mb-1"></span>
+                                        {% endif %}
+                                        <span class="fw-bold text-light d-block text-truncate small">{{ partido.equipo_local }}</span>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="d-flex align-items-center justify-content-center gap-2">
+                                            {% if partido.finalizado %}
+                                                <span class="fs-4 fw-extrabold text-light">{{ partido.goles_local_real }}</span>
+                                                <span class="text-secondary">-</span>
+                                                <span class="fs-4 fw-extrabold text-light">{{ partido.goles_visitante_real }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary bg-opacity-25 px-2.5 py-1 text-secondary small">VS</span>
+                                            {% endif %}
+                                        </div>
+                                        <span class="text-secondary d-block" style="font-size: 0.65rem; margin-top: 2px;">
+                                            {% if partido.finalizado %}Resultado{% else %}Activo{% endif %}
+                                        </span>
+                                    </div>
+                                    <div class="col-4">
+                                        {% if partido.codigo_bandera_visitante %}
+                                            <span class="fi fi-{{ partido.codigo_bandera_visitante }} fs-4 d-block mb-1"></span>
+                                        {% endif %}
+                                        <span class="fw-bold text-light d-block text-truncate small">{{ partido.equipo_visitante }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Predictions list -->
+                                <div class="table-responsive mt-3" style="max-height: 250px; overflow-y: auto;">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr class="text-secondary small" style="font-size: 0.75rem;">
+                                                <th class="border-0 ps-0">Usuario</th>
+                                                <th class="text-center border-0">Pronóstico</th>
+                                                <th class="text-end border-0 pe-0">Puntos</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for p_item in pronosticos %}
+                                                <tr class="border-top border-secondary border-opacity-10">
+                                                    <td class="ps-0 py-2.5">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="bg-secondary bg-opacity-25 rounded-circle d-flex align-items-center justify-content-center text-light fw-bold" style="width: 26px; height: 26px; font-size: 0.7rem;">
+                                                                {{ p_item.usuario.username|slice:":2"|upper }}
+                                                            </div>
+                                                            <div class="d-flex flex-column">
+                                                                <span class="text-light fw-medium" style="font-size: 0.85rem;">
+                                                                    {{ p_item.usuario.username }}
+                                                                    {% if p_item.usuario == request.user %}
+                                                                        <span class="badge bg-info text-dark ms-0.5" style="font-size: 0.55rem; padding: 0.15rem 0.3rem;">Tú</span>
+                                                                    {% endif %}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="text-center py-2.5">
+                                                        {% if p_item.pronostico %}
+                                                            {# Privacy logic: reveal only if game started OR if it is the current user's forecast #}
+                                                            {% if partido.fecha_partido <= now or p_item.usuario == request.user or partido.finalizado %}
+                                                                <span class="fw-extrabold text-info" style="font-size: 0.95rem;">
+                                                                    {{ p_item.pronostico.goles_local_pronostico }} - {{ p_item.pronostico.goles_visitante_pronostico }}
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-secondary small" title="Se revelará cuando empiece el partido">
+                                                                    <i class="bi bi-lock-fill text-warning me-1"></i>Oculto
+                                                                </span>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="text-secondary small">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-end pe-0 py-2.5">
+                                                        {% if partido.finalizado and p_item.pronostico %}
+                                                            {% if p_item.pronostico.puntos_ganados == 4 %}
+                                                                <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-2 py-1 rounded" style="font-size: 0.7rem;">
+                                                                    🎯 +4 pts
+                                                                </span>
+                                                            {% elif p_item.pronostico.puntos_ganados == 1 %}
+                                                                <span class="badge bg-info-subtle text-info border border-info border-opacity-25 px-2 py-1 rounded" style="font-size: 0.7rem;">
+                                                                    ✔ +1 pt
+                                                                </span>
+                                                            {% else %}
+                                                                <span class="text-secondary small" style="font-size: 0.75rem;">0 pts</span>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="text-secondary small">—</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                            </div>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x text-secondary fs-1 d-block mb-3"></i>
+                    <h4 class="text-light">No hay partidos programados para este día</h4>
+                    <p class="text-secondary mb-0">Selecciona otra fecha para ver los pronósticos detallados.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

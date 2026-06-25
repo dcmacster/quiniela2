@@ -186,3 +186,40 @@ class QuinielaTestCase(TestCase):
         # Verify daily special matches score count updated in PuntosDiarios
         puntos_diarios_a.refresh_from_db()
         self.assertEqual(puntos_diarios_a.marcadores_especiales, 2)
+
+    def test_apostar_partido_context_when_repeat_markers_disabled_or_enabled(self):
+        """
+        Tests that when bloquear_marcadores_repetidos is False, the context variables
+        reflect this and marcadores_ocupados is empty. When True, it should have the occupied markers.
+        """
+        from django.urls import reverse
+        # User A forecasts 2 - 1
+        Pronostico.objects.create(
+            usuario=self.user_a,
+            partido=self.partido,
+            goles_local_pronostico=2,
+            goles_visitante_pronostico=1
+        )
+        
+        config = ConfiguracionQuiniela.obtener_config()
+        
+        # Log in User B to request the page
+        self.client.force_login(self.user_b)
+        
+        # Case 1: lock is active
+        config.bloquear_marcadores_repetidos = True
+        config.save()
+        
+        response = self.client.get(reverse('apostar_partido', args=[self.partido.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['bloquear_marcadores_repetidos'])
+        self.assertIn('2 - 1', response.context['marcadores_ocupados'])
+        
+        # Case 2: lock is inactive
+        config.bloquear_marcadores_repetidos = False
+        config.save()
+        
+        response = self.client.get(reverse('apostar_partido', args=[self.partido.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['bloquear_marcadores_repetidos'])
+        self.assertEqual(len(response.context['marcadores_ocupados']), 0)

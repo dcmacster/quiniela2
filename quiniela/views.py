@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from datetime import datetime
 
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
 
 def dashboard(request):
     now = timezone.now()
@@ -43,12 +43,16 @@ def apostar_partido(request, partido_id):
     # Get the user's existing prediction, if any
     pronostico = Pronostico.objects.filter(usuario=request.user, partido=partido).first()
 
+    config = ConfiguracionQuiniela.obtener_config()
+    bloquear_marcadores_repetidos = config.bloquear_marcadores_repetidos
+
     # Get list of occupied scores (exclude current user)
     # Formatted as a dictionary or set for checking, and list of formatted strings for display
     ocupados_qs = Pronostico.objects.filter(partido=partido).exclude(usuario=request.user)
     marcadores_ocupados = []
-    for o in ocupados_qs:
-        marcadores_ocupados.append(f"{o.goles_local_pronostico} - {o.goles_visitante_pronostico}")
+    if bloquear_marcadores_repetidos:
+        for o in ocupados_qs:
+            marcadores_ocupados.append(f"{o.goles_local_pronostico} - {o.goles_visitante_pronostico}")
 
     if request.method == 'POST':
         goles_local = request.POST.get('goles_local_pronostico')
@@ -82,6 +86,7 @@ def apostar_partido(request, partido_id):
         'partido': partido,
         'pronostico': pronostico,
         'marcadores_ocupados': marcadores_ocupados,
+        'bloquear_marcadores_repetidos': bloquear_marcadores_repetidos,
     }
     return render(request, 'quiniela/apostar.html', context)
 

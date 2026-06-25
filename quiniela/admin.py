@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
 
 @admin.action(description="Recalcular puntos y tabla de posiciones")
 def recalcular_puntos(modeladmin, request, queryset):
@@ -63,3 +63,15 @@ class PuntosDiariosAdmin(admin.ModelAdmin):
     search_fields = ('usuario__username',)
     actions = [confirmar_pago, cancelar_pago]
     ordering = ('-fecha', '-puntos')
+
+
+@admin.register(ConfiguracionQuiniela)
+class ConfiguracionQuinielaAdmin(admin.ModelAdmin):
+    list_display = ('__str__', 'bloquear_marcadores_repetidos')
+
+    def has_add_permission(self, request):
+        # We only want one configuration instance (singleton)
+        return not ConfiguracionQuiniela.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False

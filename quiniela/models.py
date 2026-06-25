@@ -152,6 +152,11 @@ class Pronostico(models.Model):
 
     def clean(self):
         super().clean()
+        
+        config = ConfiguracionQuiniela.obtener_config()
+        if not config.bloquear_marcadores_repetidos:
+            return
+
         if (self.partido and 
             self.goles_local_pronostico is not None and 
             self.goles_visitante_pronostico is not None):
@@ -209,6 +214,26 @@ class PuntosDiarios(models.Model):
 
     def __str__(self):
         return f"{self.usuario.username} - {self.fecha}: {self.puntos} pts (Pago: {self.pago_confirmado})"
+
+
+class ConfiguracionQuiniela(models.Model):
+    bloquear_marcadores_repetidos = models.BooleanField(
+        default=True,
+        verbose_name="Bloquear marcadores repetidos",
+        help_text="Si está activo, no se permitirá que dos usuarios repitan el mismo marcador exacto para un partido."
+    )
+
+    class Meta:
+        verbose_name = "Configuración de la Quiniela"
+        verbose_name_plural = "Configuración de la Quiniela"
+
+    def __str__(self):
+        return "Configuración General de la Quiniela"
+
+    @classmethod
+    def obtener_config(cls):
+        config, _ = cls.objects.get_or_create(id=1)
+        return config
 
 
 # Signals to auto-create and save PerfilQuiniela when a User is created/updated

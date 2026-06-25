@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
 
 class QuinielaTestCase(TestCase):
     def setUp(self):
@@ -23,8 +23,15 @@ class QuinielaTestCase(TestCase):
 
     def test_duplicate_forecast_prevention(self):
         """
-        Tests that two different users cannot forecast the exact same score for the same match.
+        Tests that two different users cannot forecast the exact same score for the same match
+        only if bloquear_marcadores_repetidos configuration is active.
         """
+        config = ConfiguracionQuiniela.obtener_config()
+        
+        # Scenario 1: Lock is active (default)
+        config.bloquear_marcadores_repetidos = True
+        config.save()
+
         # User A forecasts 2 - 1 (should succeed)
         pronostico_a = Pronostico.objects.create(
             usuario=self.user_a,
@@ -43,14 +50,22 @@ class QuinielaTestCase(TestCase):
         with self.assertRaises(ValidationError):
             pronostico_b_invalid.save()
 
-        # User B forecasts a different score 1 - 1 (should succeed)
+        # Scenario 2: Lock is deactivated
+        config.bloquear_marcadores_repetidos = False
+        config.save()
+
+        # User B attempts to forecast 2 - 1 for the same match again (should now succeed)
         pronostico_b_valid = Pronostico.objects.create(
             usuario=self.user_b,
             partido=self.partido,
-            goles_local_pronostico=1,
+            goles_local_pronostico=2,
             goles_visitante_pronostico=1
         )
         self.assertIsNotNone(pronostico_b_valid.id)
+
+        # Restore lock default for other tests
+        config.bloquear_marcadores_repetidos = True
+        config.save()
 
     def test_scoring_distribution_rules(self):
         """

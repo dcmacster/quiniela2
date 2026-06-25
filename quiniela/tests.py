@@ -223,3 +223,50 @@ class QuinielaTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['bloquear_marcadores_repetidos'])
         self.assertEqual(len(response.context['marcadores_ocupados']), 0)
+
+    def test_flexible_payment_and_auto_generation_signals(self):
+        """
+        Tests:
+        1. Creating a new Partido automatically generates PuntosDiarios for all existing users.
+        2. Creating a new User automatically generates PuntosDiarios for all existing match dates.
+        3. Storing and reading monto_pagado works correctly.
+        """
+        # Create a new match scheduled for a different date
+        match_date = timezone.now() + timedelta(days=5)
+        new_match = Partido.objects.create(
+            equipo_local="France",
+            equipo_visitante="Spain",
+            fecha_partido=match_date
+        )
+        
+        # Verify that PuntosDiarios records are automatically created for existing users for the new date
+        fecha_local = timezone.localdate(match_date)
+        
+        # We expect PuntosDiarios to exist for user_a, user_b, user_c
+        puntos_a = PuntosDiarios.objects.filter(usuario=self.user_a, fecha=fecha_local).first()
+        puntos_b = PuntosDiarios.objects.filter(usuario=self.user_b, fecha=fecha_local).first()
+        puntos_c = PuntosDiarios.objects.filter(usuario=self.user_c, fecha=fecha_local).first()
+        
+        self.assertIsNotNone(puntos_a)
+        self.assertIsNotNone(puntos_b)
+        self.assertIsNotNone(puntos_c)
+        
+        # Log a flexible payment on one of them
+        puntos_a.monto_pagado = 150.50
+        puntos_a.pago_confirmado = True
+        puntos_a.save()
+        
+        # Refresh and verify
+        puntos_a.refresh_from_db()
+        self.assertEqual(float(puntos_a.monto_pagado), 150.50)
+        self.assertTrue(puntos_a.pago_confirmado)
+        
+        # Now create a new User D
+        user_d = User.objects.create_user(username='userD', email='userd@test.com', password='password123')
+        
+        # Verify that user_d gets PuntosDiarios records automatically generated for the existing match dates
+        match_dates = Partido.objects.values_list('fecha_partido', flat=True).distinct()
+        for fp in match_dates:
+            fp_local = timezone.localdate(fp)
+            puntos_d = PuntosDiarios.objects.filter(usuario=user_d, fecha=fp_local).first()
+            self.assertIsNotNone(puntos_d)

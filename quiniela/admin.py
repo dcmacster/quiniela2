@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import models
 from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
 
 @admin.action(description="Recalcular puntos y tabla de posiciones")
@@ -58,11 +59,23 @@ def cancelar_pago(modeladmin, request, queryset):
 
 @admin.register(PuntosDiarios)
 class PuntosDiariosAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'fecha', 'puntos', 'pago_confirmado')
+    list_display = ('usuario', 'fecha', 'puntos', 'monto_pagado', 'pago_confirmado')
     list_filter = ('fecha', 'pago_confirmado')
     search_fields = ('usuario__username',)
+    list_editable = ('monto_pagado', 'pago_confirmado')
     actions = [confirmar_pago, cancelar_pago]
     ordering = ('-fecha', '-puntos')
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        response = super().changelist_view(request, extra_context=extra_context)
+        
+        if hasattr(response, 'context_data'):
+            cl = response.context_data['cl']
+            total = cl.queryset.aggregate(total=models.Sum('monto_pagado'))['total'] or 0.00
+            response.context_data['total_recaudado'] = total
+            
+        return response
 
 
 @admin.register(ConfiguracionQuiniela)

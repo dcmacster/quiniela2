@@ -145,11 +145,11 @@
                                         <td class="text-center">
                                             {% if pos.pago_confirmado %}
                                                 <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
-                                                    💸 Confirmado
+                                                    💸 Confirmado {% if pos.monto_pagado > 0 %}(${{ pos.monto_pagado }}){% endif %}
                                                 </span>
                                             {% else %}
                                                 <span class="badge bg-danger-subtle text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill">
-                                                    ❌ Pendiente
+                                                    ❌ Pendiente {% if pos.monto_pagado > 0 %}(${{ pos.monto_pagado }}){% endif %}
                                                 </span>
                                             {% endif %}
                                         </td>

@@ -1,0 +1,17 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools %}
+  {% if total_recaudado is not None %}
+    <div style="background: #121824; color: #10b981; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.2); font-size: 15px; font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 24px;">💵</span>
+            <div>
+                <span style="color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 2px;">Recaudación del Filtro Activo</span>
+                <span style="font-weight: bold; color: #f8fafc;">Total Acumulado:</span>
+            </div>
+        </div>
+        <span style="font-size: 24px; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 4px 12px; border-radius: 6px;">${{ total_recaudado }}</span>
+    </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

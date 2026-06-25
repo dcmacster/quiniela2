@@ -204,6 +204,13 @@ class PuntosDiarios(models.Model):
     fecha = models.DateField()
     puntos = models.IntegerField(default=0)
     pago_confirmado = models.BooleanField(default=False)
+    monto_pagado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Monto Pagado",
+        help_text="Monto de pago diario registrado para el usuario."
+    )
     marcadores_especiales = models.IntegerField(default=0)
 
     class Meta:
@@ -241,6 +248,14 @@ class ConfiguracionQuiniela(models.Model):
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
         PerfilQuiniela.objects.get_or_create(usuario=instance)
+        # Also ensure PuntosDiarios exist for all existing match dates for this new user
+        fechas_partidos = Partido.objects.values_list('fecha_partido', flat=True).distinct()
+        for fp in fechas_partidos:
+            fecha_local = timezone.localdate(fp)
+            PuntosDiarios.objects.get_or_create(
+                usuario=instance,
+                fecha=fecha_local
+            )
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
@@ -249,3 +264,15 @@ def save_user_profile(sender, instance, **kwargs):
         instance.perfilquiniela.save()
     except PerfilQuiniela.DoesNotExist:
         PerfilQuiniela.objects.create(usuario=instance)
+
+
+@receiver(post_save, sender=Partido)
+def asegurar_puntos_diarios_para_partido(sender, instance, created, **kwargs):
+    if created:
+        fecha_partido_date = timezone.localdate(instance.fecha_partido)
+        usuarios = User.objects.all()
+        for usuario in usuarios:
+            PuntosDiarios.objects.get_or_create(
+                usuario=usuario,
+                fecha=fecha_partido_date
+            )

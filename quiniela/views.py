@@ -113,7 +113,7 @@ def tabla_posiciones(request):
         # If date is invalid or not provided, default to today's date if available.
         # Otherwise, fall back to the most recent past/today date with matches, or the first upcoming date.
         if not fecha_seleccionada:
-            hoy = timezone.now().date()
+            hoy = timezone.localdate()
             fechas_pasadas_o_hoy = [f for f in fechas_disponibles if f <= hoy]
             if fechas_pasadas_o_hoy:
                 fecha_seleccionada = fechas_pasadas_o_hoy[0]

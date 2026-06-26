@@ -110,12 +110,17 @@ def tabla_posiciones(request):
             except ValueError:
                 pass
         
-        # If date is invalid or not provided, default to the latest date that has matches, or today
+        # If date is invalid or not provided, default to today's date if available.
+        # Otherwise, fall back to the most recent past/today date with matches, or the first upcoming date.
         if not fecha_seleccionada:
-            if fechas_disponibles:
-                fecha_seleccionada = fechas_disponibles[0]
+            hoy = timezone.now().date()
+            fechas_pasadas_o_hoy = [f for f in fechas_disponibles if f <= hoy]
+            if fechas_pasadas_o_hoy:
+                fecha_seleccionada = fechas_pasadas_o_hoy[0]
+            elif fechas_disponibles:
+                fecha_seleccionada = fechas_disponibles[-1]
             else:
-                fecha_seleccionada = timezone.now().date()
+                fecha_seleccionada = hoy
         
         # Query PuntosDiarios for that date, ordered by points descending
         posiciones = PuntosDiarios.objects.filter(fecha=fecha_seleccionada).order_by('-puntos', 'usuario__username')

@@ -270,16 +270,9 @@
                                                     </td>
                                                     <td class="text-center py-2.5">
                                                         {% if p_item.pronostico %}
-                                                            {# Privacy logic: reveal only if game started OR if it is the current user's forecast #}
-                                                            {% if partido.fecha_partido <= now or p_item.usuario == request.user or partido.finalizado %}
-                                                                <span class="fw-extrabold text-info" style="font-size: 0.95rem;">
-                                                                    {{ p_item.pronostico.goles_local_pronostico }} - {{ p_item.pronostico.goles_visitante_pronostico }}
-                                                                </span>
-                                                            {% else %}
-                                                                <span class="text-secondary small" title="Se revelará cuando empiece el partido">
-                                                                    <i class="bi bi-lock-fill text-warning me-1"></i>Oculto
-                                                                </span>
-                                                            {% endif %}
+                                                            <span class="fw-extrabold text-info" style="font-size: 0.95rem;">
+                                                                {{ p_item.pronostico.goles_local_pronostico }} - {{ p_item.pronostico.goles_visitante_pronostico }}
+                                                            </span>
                                                         {% else %}
                                                             <span class="text-secondary small">—</span>
                                                         {% endif %}

@@ -270,3 +270,31 @@ class QuinielaTestCase(TestCase):
             fp_local = timezone.localdate(fp)
             puntos_d = PuntosDiarios.objects.filter(usuario=user_d, fecha=fp_local).first()
             self.assertIsNotNone(puntos_d)
+
+    def test_daily_table_always_shows_predictions(self):
+        """
+        Tests that predictions made by users for future matches are visible to other users
+        in the daily table positions view, and not hidden.
+        """
+        from django.urls import reverse
+        
+        # User A makes a prediction for the future match (2 - 1)
+        Pronostico.objects.create(
+            usuario=self.user_a,
+            partido=self.partido,
+            goles_local_pronostico=2,
+            goles_visitante_pronostico=1
+        )
+        
+        # Log in User B to request the page
+        self.client.force_login(self.user_b)
+        
+        # Fetch the daily positions page for the date of the match
+        fecha_str = timezone.localdate(self.fecha_partido).strftime('%Y-%m-%d')
+        response = self.client.get(reverse('tabla_posiciones') + f'?tipo=diaria&fecha={fecha_str}')
+        
+        self.assertEqual(response.status_code, 200)
+        # Verify the forecast is visible in the HTML (should render "2 - 1")
+        self.assertContains(response, "2 - 1")
+        # Verify "Oculto" is not in the response (since privacy check was removed)
+        self.assertNotContains(response, "Oculto")

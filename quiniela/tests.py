@@ -298,3 +298,88 @@ class QuinielaTestCase(TestCase):
         self.assertContains(response, "2 - 1")
         # Verify "Oculto" is not in the response (since privacy check was removed)
         self.assertNotContains(response, "Oculto")
+
+    def test_daily_leaderboard_ordering_by_points_and_special_matches(self):
+        """
+        Tests that if two users have the same daily points, they are sorted
+        by the count of special matches won (marcadores_especiales) descending.
+        """
+        from django.urls import reverse
+        
+        # Create users: 'zzz_user' and 'xxx_user'
+        user_z = User.objects.create_user(username='zzz_user', email='zzz@test.com', password='password123')
+        user_x = User.objects.create_user(username='xxx_user', email='xxx@test.com', password='password123')
+        
+        # Create matches on the same date: one special, one normal
+        match_date = timezone.now() + timedelta(days=2)
+        partido_especial = Partido.objects.create(
+            equipo_local="Team A",
+            equipo_visitante="Team B",
+            fecha_partido=match_date,
+            es_partido_especial=True
+        )
+        partido_normal = Partido.objects.create(
+            equipo_local="Team C",
+            equipo_visitante="Team D",
+            fecha_partido=match_date,
+            es_partido_especial=False
+        )
+        
+        # Forecasts:
+        # zzz_user gets exact score on special match (4 pts, 1 special)
+        # zzz_user gets wrong on normal match (0 pts)
+        Pronostico.objects.create(
+            usuario=user_z,
+            partido=partido_especial,
+            goles_local_pronostico=2,
+            goles_visitante_pronostico=1
+        )
+        Pronostico.objects.create(
+            usuario=user_z,
+            partido=partido_normal,
+            goles_local_pronostico=0,
+            goles_visitante_pronostico=0
+        )
+        
+        # xxx_user gets wrong on special match (0 pts)
+        # xxx_user gets exact score on normal match (4 pts, 0 special)
+        Pronostico.objects.create(
+            usuario=user_x,
+            partido=partido_especial,
+            goles_local_pronostico=0,
+            goles_visitante_pronostico=0
+        )
+        Pronostico.objects.create(
+            usuario=user_x,
+            partido=partido_normal,
+            goles_local_pronostico=3,
+            goles_visitante_pronostico=1
+        )
+        
+        # Finalize the matches
+        partido_especial.goles_local_real = 2
+        partido_especial.goles_visitante_real = 1
+        partido_especial.finalizado = True
+        partido_especial.save()
+        
+        partido_normal.goles_local_real = 3
+        partido_normal.goles_visitante_real = 1
+        partido_normal.finalizado = True
+        partido_normal.save()
+        
+        # Fetch positions for that day
+        fecha_str = timezone.localdate(match_date).strftime('%Y-%m-%d')
+        response = self.client.get(reverse('tabla_posiciones') + f'?tipo=diaria&fecha={fecha_str}')
+        
+        self.assertEqual(response.status_code, 200)
+        posiciones = response.context['posiciones']
+        
+        # Filter down to our two test users
+        pos_filtradas = [p for p in posiciones if p.usuario in (user_z, user_x)]
+        
+        self.assertEqual(len(pos_filtradas), 2)
+        # zzz_user has 4 points and 1 special match won
+        # xxx_user has 4 points and 0 special matches won
+        # Therefore zzz_user must be first, despite 'xxx_user' being alphabetically first.
+        self.assertEqual(pos_filtradas[0].usuario, user_z)
+        self.assertEqual(pos_filtradas[1].usuario, user_x)

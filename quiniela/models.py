@@ -217,7 +217,7 @@ class PuntosDiarios(models.Model):
         unique_together = ('usuario', 'fecha')
         verbose_name = "Puntos Diarios"
         verbose_name_plural = "Puntos Diarios"
-        ordering = ['-fecha', '-puntos']
+        ordering = ['-fecha', '-puntos', '-marcadores_especiales']
 
     def __str__(self):
         return f"{self.usuario.username} - {self.fecha}: {self.puntos} pts (Pago: {self.pago_confirmado})"

@@ -122,8 +122,8 @@ def tabla_posiciones(request):
             else:
                 fecha_seleccionada = hoy
         
-        # Query PuntosDiarios for that date, ordered by points descending
-        posiciones = PuntosDiarios.objects.filter(fecha=fecha_seleccionada).order_by('-puntos', 'usuario__username')
+        # Query PuntosDiarios for that date, ordered by points descending, then by special matches won descending
+        posiciones = PuntosDiarios.objects.filter(fecha=fecha_seleccionada).order_by('-puntos', '-marcadores_especiales', 'usuario__username')
 
         # Fetch matches and build match prediction mapping
         partidos_del_dia = Partido.objects.filter(fecha_partido__date=fecha_seleccionada).order_by('fecha_partido')

@@ -59,12 +59,12 @@ def cancelar_pago(modeladmin, request, queryset):
 
 @admin.register(PuntosDiarios)
 class PuntosDiariosAdmin(admin.ModelAdmin):
-    list_display = ('usuario', 'fecha', 'puntos', 'monto_pagado', 'pago_confirmado')
+    list_display = ('usuario', 'fecha', 'puntos', 'marcadores_especiales', 'monto_pagado', 'pago_confirmado')
     list_filter = ('fecha', 'pago_confirmado')
     search_fields = ('usuario__username',)
     list_editable = ('monto_pagado', 'pago_confirmado')
     actions = [confirmar_pago, cancelar_pago]
-    ordering = ('-fecha', '-puntos')
+    ordering = ('-fecha', '-puntos', '-marcadores_especiales')
 
     def changelist_view(self, request, extra_context=None):
         extra_context = extra_context or {}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.db import models
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela, Torneo, PuntosTorneoUsuario
 
 @admin.action(description="Recalcular puntos y tabla de posiciones")
 def recalcular_puntos(modeladmin, request, queryset):
@@ -15,6 +15,7 @@ class PartidoAdmin(admin.ModelAdmin):
     list_display = (
         'equipo_local', 
         'equipo_visitante', 
+        'torneo',
         'fecha_partido', 
         'goles_local_real', 
         'goles_visitante_real', 
@@ -23,7 +24,7 @@ class PartidoAdmin(admin.ModelAdmin):
         'codigo_bandera_local',
         'codigo_bandera_visitante'
     )
-    list_filter = ('finalizado', 'es_partido_especial', 'fecha_partido')
+    list_filter = ('torneo', 'finalizado', 'es_partido_especial', 'fecha_partido')
     search_fields = ('equipo_local', 'equipo_visitante')
     actions = [recalcular_puntos]
     ordering = ('fecha_partido',)
@@ -88,3 +89,18 @@ class ConfiguracionQuinielaAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Torneo)
+class TorneoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'activo', 'fecha_inicio', 'fecha_fin')
+    list_filter = ('activo',)
+    search_fields = ('nombre',)
+
+
+@admin.register(PuntosTorneoUsuario)
+class PuntosTorneoUsuarioAdmin(admin.ModelAdmin):
+    list_display = ('usuario', 'torneo', 'puntos_totales', 'marcadores_especiales_atinados', 'monto_pagado_acumulado')
+    list_filter = ('torneo', 'usuario')
+    search_fields = ('usuario__username', 'torneo__nombre')
+    ordering = ('torneo', '-puntos_totales', '-marcadores_especiales_atinados')

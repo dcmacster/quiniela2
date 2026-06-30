@@ -6,7 +6,52 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 
+class Torneo(models.Model):
+    nombre = models.CharField(max_length=100, unique=True, verbose_name="Nombre del Torneo")
+    activo = models.BooleanField(default=True, verbose_name="¿Es el Torneo Activo?")
+    fecha_inicio = models.DateField(null=True, blank=True)
+    fecha_fin = models.DateField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Torneo"
+        verbose_name_plural = "Torneos"
+
+    def save(self, *args, **kwargs):
+        if self.activo:
+            Torneo.objects.exclude(pk=self.pk).update(activo=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.nombre} ({'Activo' if self.activo else 'Inactivo'})"
+
+
+class PuntosTorneoUsuario(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='puntos_torneos')
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='posiciones_usuarios')
+    puntos_totales = models.IntegerField(default=0)
+    marcadores_especiales_atinados = models.IntegerField(default=0)
+    monto_pagado_acumulado = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00,
+        verbose_name="Monto Pagado Acumulado"
+    )
+
+    class Meta:
+        unique_together = ('usuario', 'torneo')
+        verbose_name = "Puntos por Torneo"
+        verbose_name_plural = "Puntos por Torneos"
+        ordering = ['-puntos_totales', '-marcadores_especiales_atinados', 'usuario__username']
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.torneo.nombre}: {self.puntos_totales} pts"
+
+    def tiene_premio_especial(self):
+        return self.marcadores_especiales_atinados >= 2
+
+
 class Partido(models.Model):
+    torneo = models.ForeignKey(Torneo, on_delete=models.CASCADE, related_name='partidos', null=True, blank=True, verbose_name="Torneo")
     equipo_local = models.CharField(max_length=100)
     equipo_visitante = models.CharField(max_length=100)
     fecha_partido = models.DateTimeField()
@@ -102,6 +147,31 @@ class Partido(models.Model):
             perfil.marcadores_especiales_atinados = marcadores_especiales
             perfil.save()
 
+            # 1.5. Update PuntosTorneoUsuario if tournament exists
+            if self.torneo:
+                puntos_torneo, _ = PuntosTorneoUsuario.objects.get_or_create(
+                    usuario=usuario,
+                    torneo=self.torneo
+                )
+                
+                total_puntos_torneo = Pronostico.objects.filter(
+                    usuario=usuario,
+                    partido__finalizado=True,
+                    partido__torneo=self.torneo
+                ).aggregate(total=Sum('puntos_ganados'))['total'] or 0
+
+                marcadores_especiales_torneo = Pronostico.objects.filter(
+                    usuario=usuario,
+                    partido__finalizado=True,
+                    partido__es_partido_especial=True,
+                    partido__torneo=self.torneo,
+                    puntos_ganados=4
+                ).count()
+
+                puntos_torneo.puntos_totales = total_puntos_torneo
+                puntos_torneo.marcadores_especiales_atinados = marcadores_especiales_torneo
+                puntos_torneo.save()
+
             # 2. Update PuntosDiarios for this match date
             # Sum points from all forecasts of finalized matches scheduled on this date
             puntos_dia = Pronostico.objects.filter(
@@ -128,6 +198,14 @@ class Partido(models.Model):
             puntos_diarios_obj.save()
 
     def save(self, *args, **kwargs):
+        if not self.torneo:
+            torneo_activo = Torneo.objects.filter(activo=True).first()
+            if not torneo_activo:
+                torneo_activo, _ = Torneo.objects.get_or_create(
+                    nombre="Torneo General",
+                    defaults={"activo": True}
+                )
+            self.torneo = torneo_activo
         # Save first to establish/update score
         super().save(*args, **kwargs)
         if self.finalizado:
@@ -276,3 +354,26 @@ def asegurar_puntos_diarios_para_partido(sender, instance, created, **kwargs):
                 usuario=usuario,
                 fecha=fecha_partido_date
             )
+
+
+@receiver(post_save, sender=PuntosDiarios)
+def actualizar_acumulado_pagado_torneo(sender, instance, **kwargs):
+    # Encontrar los torneos que tienen partidos en la fecha de este registro de PuntosDiarios
+    fechas_partidos = Partido.objects.filter(fecha_partido__date=instance.fecha)
+    torneos_ids = fechas_partidos.values_list('torneo_id', flat=True).distinct()
+    
+    for torneo_id in torneos_ids:
+        if torneo_id:
+            # Obtener todas las fechas de partidos de este torneo
+            fechas_del_torneo = Partido.objects.filter(torneo_id=torneo_id).values_list('fecha_partido__date', flat=True).distinct()
+            total_pagado = PuntosDiarios.objects.filter(
+                usuario=instance.usuario,
+                fecha__in=fechas_del_torneo
+            ).aggregate(total=Sum('monto_pagado'))['total'] or 0.00
+            
+            puntos_torneo, _ = PuntosTorneoUsuario.objects.get_or_create(
+                usuario=instance.usuario,
+                torneo_id=torneo_id
+            )
+            puntos_torneo.monto_pagado_acumulado = total_pagado
+            puntos_torneo.save(update_fields=['monto_pagado_acumulado'])

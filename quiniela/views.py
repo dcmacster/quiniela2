@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from datetime import datetime
 
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela, Torneo, PuntosTorneoUsuario
 
 def dashboard(request):
     now = timezone.now()
@@ -94,10 +94,25 @@ def apostar_partido(request, partido_id):
 def tabla_posiciones(request):
     tipo = request.GET.get('tipo', 'general')
     fecha_str = request.GET.get('fecha', '')
+    torneo_id = request.GET.get('torneo', '')
 
     # Fetch all dates that have matches scheduled to populate the date selector dropdown
     fechas_disponibles = Partido.objects.values_list('fecha_partido__date', flat=True).distinct().order_by('-fecha_partido__date')
     
+    # Fetch all tournaments
+    torneos = Torneo.objects.all().order_by('-id')
+    torneo_seleccionado = None
+    if torneo_id:
+        try:
+            torneo_seleccionado = Torneo.objects.filter(id=torneo_id).first()
+        except (ValueError, TypeError):
+            pass
+            
+    if not torneo_seleccionado:
+        torneo_seleccionado = Torneo.objects.filter(activo=True).first()
+        if not torneo_seleccionado and torneos.exists():
+            torneo_seleccionado = torneos.first()
+
     posiciones = []
     fecha_seleccionada = None
     partidos_con_pronosticos = []
@@ -147,8 +162,11 @@ def tabla_posiciones(request):
                 'pronosticos': pronosticos_lista
             })
     else:
-        # Query PerfilQuiniela ordered by points descending
-        posiciones = PerfilQuiniela.objects.all().order_by('-puntos_totales', '-marcadores_especiales_atinados', 'usuario__username')
+        # Query PuntosTorneoUsuario ordered by points descending for the selected tournament
+        if torneo_seleccionado:
+            posiciones = PuntosTorneoUsuario.objects.filter(torneo=torneo_seleccionado).order_by('-puntos_totales', '-marcadores_especiales_atinados', 'usuario__username')
+        else:
+            posiciones = []
 
     context = {
         'tipo': tipo,
@@ -158,5 +176,7 @@ def tabla_posiciones(request):
         'fecha_seleccionada_str': fecha_seleccionada.strftime('%Y-%m-%d') if fecha_seleccionada else '',
         'partidos_con_pronosticos': partidos_con_pronosticos,
         'now': now,
+        'torneos': torneos,
+        'torneo_seleccionado': torneo_seleccionado,
     }
     return render(request, 'quiniela/posiciones.html', context)

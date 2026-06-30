@@ -2,7 +2,7 @@ import requests
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta, datetime
-from quiniela.models import Partido
+from quiniela.models import Partido, Torneo
 
 class Command(BaseCommand):
     help = "Sincroniza los partidos de fútbol para el día de hoy"
@@ -10,6 +10,13 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write("Buscando partidos para hoy...")
         hoy_str = timezone.now().strftime("%Y-%m-%d")
+        
+        torneo_activo = Torneo.objects.filter(activo=True).first()
+        if not torneo_activo:
+            torneo_activo, _ = Torneo.objects.get_or_create(
+                nombre="Torneo General",
+                defaults={"activo": True}
+            )
         
         # Intentamos obtener partidos de una API pública y gratuita (TheSportsDB con API Key de prueba '3')
         url = f"https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d={hoy_str}&s=Soccer"
@@ -54,6 +61,7 @@ class Command(BaseCommand):
                 partido, created = Partido.objects.get_or_create(
                     equipo_local=local,
                     equipo_visitante=visitante,
+                    torneo=torneo_activo,
                     defaults={
                         'fecha_partido': fecha_partido,
                         'es_partido_especial': False,
@@ -85,6 +93,7 @@ class Command(BaseCommand):
                 partido, created = Partido.objects.get_or_create(
                     equipo_local=p["local"],
                     equipo_visitante=p["visitante"],
+                    torneo=torneo_activo,
                     defaults={
                         'fecha_partido': fecha,
                         'es_partido_especial': p["especial"],

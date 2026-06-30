@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from datetime import timedelta
-from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela
+from .models import Partido, Pronostico, PerfilQuiniela, PuntosDiarios, ConfiguracionQuiniela, Torneo, PuntosTorneoUsuario
 
 class QuinielaTestCase(TestCase):
     def setUp(self):
@@ -383,3 +383,127 @@ class QuinielaTestCase(TestCase):
         # Therefore zzz_user must be first, despite 'xxx_user' being alphabetically first.
         self.assertEqual(pos_filtradas[0].usuario, user_z)
         self.assertEqual(pos_filtradas[1].usuario, user_x)
+
+    def test_reset_puntos_con_nuevo_torneo(self):
+        """
+        Tests that creating a new active Torneo resets the active leaderboard to zero,
+        while the previous Torneo's scores are preserved.
+        """
+        # The default setup should have auto-created a 'Torneo General' and linked self.partido to it.
+        torneo_inicial = self.partido.torneo
+        self.assertIsNotNone(torneo_inicial)
+        
+        # User A makes exact forecast (2 - 1)
+        Pronostico.objects.create(
+            usuario=self.user_a,
+            partido=self.partido,
+            goles_local_pronostico=2,
+            goles_visitante_pronostico=1
+        )
+        self.partido.goles_local_real = 2
+        self.partido.goles_visitante_real = 1
+        self.partido.finalizado = True
+        self.partido.save()
+        
+        # Verify User A has 4 points in the initial tournament
+        puntos_torneo_inicial = PuntosTorneoUsuario.objects.get(usuario=self.user_a, torneo=torneo_inicial)
+        self.assertEqual(puntos_torneo_inicial.puntos_totales, 4)
+        
+        # Create a new Torneo and activate it
+        torneo_clausura = Torneo.objects.create(nombre="Torneo Clausura", activo=True)
+        
+        # The initial tournament must have been deactivated
+        torneo_inicial.refresh_from_db()
+        self.assertFalse(torneo_inicial.activo)
+        self.assertTrue(torneo_clausura.activo)
+        
+        # Create a new Partido (should automatically link to the active 'Torneo Clausura')
+        nuevo_partido = Partido.objects.create(
+            equipo_local="Boca Juniors",
+            equipo_visitante="River Plate",
+            fecha_partido=timezone.now() + timedelta(days=2)
+        )
+        self.assertEqual(nuevo_partido.torneo, torneo_clausura)
+        
+        # User A makes exact forecast on the new match (1 - 0)
+        Pronostico.objects.create(
+            usuario=self.user_a,
+            partido=nuevo_partido,
+            goles_local_pronostico=1,
+            goles_visitante_pronostico=0
+        )
+        nuevo_partido.goles_local_real = 1
+        nuevo_partido.goles_visitante_real = 0
+        nuevo_partido.finalizado = True
+        nuevo_partido.save()
+        
+        # Verify points are calculated separately
+        puntos_torneo_clausura = PuntosTorneoUsuario.objects.get(usuario=self.user_a, torneo=torneo_clausura)
+        puntos_torneo_inicial.refresh_from_db()
+        
+        self.assertEqual(puntos_torneo_clausura.puntos_totales, 4)
+        self.assertEqual(puntos_torneo_inicial.puntos_totales, 4)
+        
+        # Global profile should sum both (8 points)
+        perfil_a = PerfilQuiniela.objects.get(usuario=self.user_a)
+        self.assertEqual(perfil_a.puntos_totales, 8)
+
+    def test_monto_pagado_acumulado_por_torneo(self):
+        """
+        Verifica:
+        1. Al registrar pagos diarios (PuntosDiarios) para un usuario en fechas correspondientes al torneo activo,
+           el total acumulado en PuntosTorneoUsuario se actualice correctamente.
+        2. Los pagos de un torneo no interfieren con los pagos acumulados de otro torneo.
+        """
+        # Crear dos torneos
+        torneo_1 = Torneo.objects.create(nombre="Torneo 1", activo=True)
+        torneo_2 = Torneo.objects.create(nombre="Torneo 2", activo=False)
+        
+        # Fechas de partidos para los torneos
+        fecha_t1 = timezone.now() + timedelta(days=10)
+        fecha_t2 = timezone.now() + timedelta(days=20)
+        
+        # Partido para Torneo 1
+        partido_t1 = Partido.objects.create(
+            equipo_local="Real Madrid",
+            equipo_visitante="Barcelona",
+            fecha_partido=fecha_t1,
+            torneo=torneo_1
+        )
+        
+        # Partido para Torneo 2
+        partido_t2 = Partido.objects.create(
+            equipo_local="Boca Juniors",
+            equipo_visitante="River Plate",
+            fecha_partido=fecha_t2,
+            torneo=torneo_2
+        )
+        
+        # Obtener los PuntosDiarios creados por señal para el user_a en esas fechas
+        fecha_t1_date = timezone.localdate(fecha_t1)
+        fecha_t2_date = timezone.localdate(fecha_t2)
+        
+        puntos_diarios_t1 = PuntosDiarios.objects.get(usuario=self.user_a, fecha=fecha_t1_date)
+        puntos_diarios_t2 = PuntosDiarios.objects.get(usuario=self.user_a, fecha=fecha_t2_date)
+        
+        # 1. Registrar pago diario en fecha del Torneo 1
+        puntos_diarios_t1.monto_pagado = 100.00
+        puntos_diarios_t1.save()
+        
+        # Verificar que el acumulado en PuntosTorneoUsuario para Torneo 1 sea 100.00 y para Torneo 2 sea 0.00
+        ptu_t1 = PuntosTorneoUsuario.objects.get(usuario=self.user_a, torneo=torneo_1)
+        ptu_t2 = PuntosTorneoUsuario.objects.get(usuario=self.user_a, torneo=torneo_2)
+        
+        self.assertEqual(float(ptu_t1.monto_pagado_acumulado), 100.00)
+        self.assertEqual(float(ptu_t2.monto_pagado_acumulado), 0.00)
+        
+        # 2. Registrar pago diario en fecha del Torneo 2
+        puntos_diarios_t2.monto_pagado = 150.50
+        puntos_diarios_t2.save()
+        
+        # Refrescar objetos y verificar que los pagos de Torneo 2 no afecten a Torneo 1
+        ptu_t1.refresh_from_db()
+        ptu_t2.refresh_from_db()
+        
+        self.assertEqual(float(ptu_t1.monto_pagado_acumulado), 100.00)
+        self.assertEqual(float(ptu_t2.monto_pagado_acumulado), 150.50)

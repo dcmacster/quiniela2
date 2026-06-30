@@ -26,6 +26,40 @@
     </div>
 </div>
 
+<!-- Tournament Filter (Only shows if type is general) -->
+{% if tipo == 'general' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="glass-card p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-trophy-fill text-warning fs-5"></i>
+                <h5 class="mb-0 text-light" style="font-family: 'Outfit', sans-serif;">Filtrar por Torneo</h5>
+            </div>
+            
+            <form method="GET" action="{% url 'tabla_posiciones' %}" class="d-flex align-items-center gap-2" id="tournamentFilterForm">
+                <input type="hidden" name="tipo" value="general">
+                
+                <select name="torneo" class="form-select form-control bg-dark text-light border-secondary" style="min-width: 250px;" onchange="document.getElementById('tournamentFilterForm').submit();">
+                    {% if torneos %}
+                        {% for t in torneos %}
+                            <option value="{{ t.id }}" {% if t.id == torneo_seleccionado.id %}selected{% endif %}>
+                                {{ t.nombre }} {% if t.activo %}(Activo){% endif %}
+                            </option>
+                        {% endfor %}
+                    {% else %}
+                        <option value="">Sin torneos registrados</option>
+                    {% endif %}
+                </select>
+                
+                <noscript>
+                    <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+                </noscript>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Daily Date Filter (Only shows if type is diaria) -->
 {% if tipo == 'diaria' %}
 <div class="row mb-4">
@@ -65,7 +99,9 @@
     <div class="col-12">
         <div class="glass-card p-4 p-md-5">
             {% if tipo == 'general' %}
-                <h3 class="mb-4 text-light" style="font-family: 'Outfit', sans-serif;">🏆 Tabla Acumulada</h3>
+                <h3 class="mb-4 text-light" style="font-family: 'Outfit', sans-serif;">
+                    🏆 Tabla Acumulada: <span class="text-warning">{% if torneo_seleccionado %}{{ torneo_seleccionado.nombre }}{% else %}General{% endif %}</span>
+                </h3>
             {% else %}
                 <h3 class="mb-4 text-light" style="font-family: 'Outfit', sans-serif;">
                     📅 Resultados del Día: <span class="text-info">{{ fecha_seleccionada|date:"d \d\e F, Y" }}</span>
@@ -82,6 +118,7 @@
                                 {% if tipo == 'general' %}
                                     <th class="text-center">Marcadores Especiales 🎯</th>
                                     <th class="text-center">Premio Especial 🌟</th>
+                                    <th class="text-center">Total Pagado 💸</th>
                                     <th class="text-end">Puntos Totales 👑</th>
                                 {% else %}
                                     <th class="text-center">Pago Confirmado 💸</th>
@@ -136,6 +173,11 @@
                                             {% else %}
                                                 <span class="text-secondary small">—</span>
                                             {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-success-subtle text-success border border-success border-opacity-25 px-3 py-2 rounded-pill">
+                                                ${{ pos.monto_pagado_acumulado }}
+                                            </span>
                                         </td>
                                         <td class="text-end">
                                             <span class="fs-4 fw-extrabold text-info">{{ pos.puntos_totales }}</span>
